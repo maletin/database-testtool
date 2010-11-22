@@ -7,21 +7,21 @@
 #
 #  DESCRIPTION:  Testing database connections
 #
-#      OPTIONS:  ---
+#      OPTIONS:  -config | -help | -verbose
 # REQUIREMENTS:  ---
 #         BUGS:  ---
 #        NOTES:  ---
 #       AUTHOR:  Martin von Oertzen <maletin@cpan.org>
 #      COMPANY:  
-#      VERSION:  0.1.0
-#      CREATED:  19.11.2010 19:54:25 UTC
+#      VERSION:  0.1.1
+#      CREATED:  2010-11-19 19:54:25 UTC
 #     REVISION:  $Id$
 #===============================================================================
 
 use strict;
 use warnings;
 use 5.010;
-use version; our $VERSION = qv('0.1.0');
+use version; our $VERSION = qv('0.1.1');
 use Log::Log4perl qw(:easy);
 use Data::Dumper;
 use Readonly;
@@ -36,16 +36,19 @@ my %opt;
 GetOptions( \%opt, 'config=s', 'help|?', 'verbose|v' ) or pod2usage(2);
 pod2usage( -verbose => 2 ) if $opt{help};
 
+$opt{config} ||= $ENV{HOME} . '/.database-testtool.conf';
 my $cfg = new Config::IniFiles( -file => $opt{config} );
-DEBUG( '$cfg=', Dumper($cfg) );
 Readonly my $LOGFILE => $opt{log} || $cfg->val( 'log', 'file' );
+Readonly my $LAYOUT => $opt{log} || $cfg->val( 'log', 'layout' ) || '%m%n';
 Log::Log4perl->easy_init(
     {
         level => $opt{verbose} ? $DEBUG : $INFO,
         file => ':utf8>>' . $LOGFILE,
-        layout => $opt{layout},
+        layout => $LAYOUT,
     },
 );
+INFO( 'start ', $0, ' ', $VERSION );
+DEBUG( '$cfg=', Dumper($cfg) );
 
 POE::Session->create(
     inline_states => {
@@ -86,3 +89,7 @@ POE::Session->create(
 );
 
 POE::Kernel->run();
+
+END {
+    INFO( 'end ', $0 );
+}
